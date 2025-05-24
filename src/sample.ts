@@ -2,9 +2,9 @@
 console.log('This is a sample JS file.');
 
 /**
- * Capitalizes the first letter of the given string.
- * @param str - The input string.
- * @returns The capitalized string.
+ * Capitalize the first letter of the string.
+ * @param str - The string to capitalize
+ * @returns The capitalized string
  */
 export function capitalize(str: string | null | undefined): string {
   if (!str) return '';
@@ -12,66 +12,64 @@ export function capitalize(str: string | null | undefined): string {
 }
 
 /**
- * Performs a deep clone of an object.
- * @param obj - The object to clone.
- * @returns The cloned object.
+ * Deep clone an object.
+ * @param obj - The object to clone
+ * @returns A deep cloned copy of the object
  */
 export function deepClone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
 }
 
 /**
- * Creates a debounced function that delays invoking fn until after delay ms.
- * @param fn - The function to debounce.
- * @param delay - The debounce delay in milliseconds.
- * @returns The debounced function.
+ * Debounce a function.
+ * @param fn - Function to debounce
+ * @param delay - Delay in milliseconds
+ * @returns A debounced function
  */
-export function debounce<F extends (...args: readonly unknown[]) => void>(
+export function debounce<F extends (...args: readonly any[]) => void>(
   fn: F,
   delay: number
 ): (...args: Parameters<F>) => void {
-  let timeout: number | undefined;
-  return function (this: unknown, ...args: Parameters<F>): void {
-    if (timeout !== undefined) clearTimeout(timeout);
-    timeout = window.setTimeout(() => fn.apply(this, args), delay);
+  let timeout: ReturnType<typeof setTimeout> | null;
+  return function (...args: Parameters<F>): void {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => fn.apply(this, args), delay);
   };
 }
 
 /**
- * Creates a throttled function that only invokes fn at most once per limit ms.
- * @param fn - The function to throttle.
- * @param limit - The throttle limit in milliseconds.
- * @returns The throttled function.
+ * Throttle a function.
+ * @param fn - Function to throttle
+ * @param limit - Limit in milliseconds
+ * @returns A throttled function
  */
-export function throttle<F extends (...args: readonly unknown[]) => void>(
+export function throttle<F extends (...args: readonly any[]) => void>(
   fn: F,
   limit: number
 ): (...args: Parameters<F>) => void {
   let inThrottle = false;
-  return function (this: unknown, ...args: Parameters<F>): void {
+  return function (...args: Parameters<F>): void {
     if (!inThrottle) {
       fn.apply(this, args);
       inThrottle = true;
-      setTimeout(() => {
-        inThrottle = false;
-      }, limit);
+      setTimeout(() => (inThrottle = false), limit);
     }
   };
 }
 
 /**
- * Generates a random string of the given length.
- * @param length - The desired string length.
- * @returns The random string.
+ * Generate random string.
+ * @param length - Length of the string (default 8)
+ * @returns Randomly generated string
  */
 export function randomString(length: number = 8): string {
   return Math.random().toString(36).substr(2, length);
 }
 
 /**
- * Checks if a value is empty.
- * @param val - The value to check.
- * @returns True if value is empty, else false.
+ * Check if a value is empty.
+ * @param val - Value to check
+ * @returns True if empty, else false
  */
 export function isEmpty(val: unknown): boolean {
   return (
@@ -81,46 +79,46 @@ export function isEmpty(val: unknown): boolean {
     (typeof val === 'object' &&
       val !== null &&
       !Array.isArray(val) &&
-      Object.keys(val as Record<string, unknown>).length === 0)
+      Object.keys(val).length === 0)
   );
 }
 
 /**
- * Flattens a nested array.
- * @param arr - The array to flatten.
- * @returns The flattened array.
+ * Flatten an array recursively.
+ * @param arr - Array to flatten
+ * @returns Flattened array
  */
-export function flatten<T>(arr: readonly (T | T[])[]): T[] {
+export function flatten<T>(arr: readonly any[]): T[] {
   return arr.reduce<T[]>(
     (flat, toFlatten) =>
-      flat.concat(Array.isArray(toFlatten) ? flatten(toFlatten) : toFlatten as T),
+      flat.concat(Array.isArray(toFlatten) ? flatten<T>(toFlatten) : toFlatten),
     []
   );
 }
 
 /**
- * Returns unique values from an array.
- * @param arr - The array of values.
- * @returns The array with unique values.
+ * Get unique values from array.
+ * @param arr - Array of values
+ * @returns Array with unique values
  */
 export function unique<T>(arr: readonly T[]): T[] {
   return [...new Set(arr)];
 }
 
 /**
- * Sleeps for the given milliseconds.
- * @param ms - Milliseconds to sleep.
- * @returns A promise resolved after ms.
+ * Sleep for a specified time.
+ * @param ms - Milliseconds to sleep
+ * @returns Promise that resolves after ms
  */
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
- * Chunks an array into smaller arrays of the given size.
- * @param arr - The array to chunk.
- * @param size - The size of each chunk.
- * @returns The array of chunks.
+ * Chunk an array into smaller arrays.
+ * @param arr - Array to chunk
+ * @param size - Chunk size
+ * @returns Array of chunks
  */
 export function chunk<T>(arr: readonly T[], size: number): T[][] {
   const res: T[][] = [];
@@ -131,24 +129,19 @@ export function chunk<T>(arr: readonly T[], size: number): T[][] {
 }
 
 /**
- * Groups an array of objects by a key.
- * @param arr - Array of objects to group.
- * @param key - Key to group by.
- * @returns An object grouped by the key.
+ * Group array of objects by a key.
+ * @param arr - Array of objects
+ * @param key - Key to group by
+ * @returns Object grouping the arrays by key value
  */
-export interface IndexedObject {
-  readonly [key: string]: unknown;
-}
-
-export function groupBy<T extends IndexedObject>(
+export function groupBy<T extends Record<string, any>, K extends keyof T>(
   arr: readonly T[],
-  key: keyof T
-): Record<string, T[]> {
+  key: K
+): Record<string, readonly T[]> {
   return arr.reduce<Record<string, T[]>>((acc, obj) => {
-    const group = obj[key];
-    const groupKey = String(group);
-    if (!acc[groupKey]) acc[groupKey] = [];
-    acc[groupKey].push(obj);
+    const group = String(obj[key]);
+    acc[group] = acc[group] || [];
+    acc[group].push(obj);
     return acc;
   }, {});
 }
