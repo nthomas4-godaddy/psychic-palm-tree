@@ -1,85 +1,123 @@
-name: Touch JS Files and Open PR
+name: Convert JS Files to TS
 
 on:
   workflow_dispatch:
+    inputs:
+      directory:
+        description: 'Directory containing JS files to convert'
+        required: true
+        default: 'src'
   push:
     branches:
       - main
+    paths:
+      - '**/*.js'
 
 jobs:
-  touch-js-files:
+  convert-js-to-ts:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Find and touch all JS files
-        run: |
-          for file in $(find . -type f -name '*.js'); do
-            touch "$file"
-          done
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+          cache: 'npm'
 
-      - name: Modify all JS files to ensure a change
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the converter
+        run: npm run build
+
+      - name: Find JS files to convert
+        id: find-js
         run: |
-          for file in $(find . -type f -name '*.js'); do
-            echo "" >> "$file"
-          done
+          # Get the directory from input or use default
+          DIRECTORY="${{ github.event.inputs.directory || 'src' }}"
+          
+          # Find all JS files in the specified directory
+          JS_FILES=$(find $DIRECTORY -type f -name "*.js" | tr '\n' ' ')
+          
+          # Store the list of files
+          echo "js_files=$JS_FILES" >> $GITHUB_OUTPUT
+          
+          # Count files for later checks
+          FILES_COUNT=$(echo $JS_FILES | wc -w | xargs)
+          echo "files_count=$FILES_COUNT" >> $GITHUB_OUTPUT
+          
+          echo "Found $FILES_COUNT JavaScript files in $DIRECTORY directory"
 
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Stage and commit changes
+      - name: Create new branch
         run: |
-          git add '*.js'
-          git commit -m "chore: touch all JS files" || echo "No changes to commit"
-
-      - name: Push changes to new branch
-        run: |
-          BRANCH=auto/touch-js-files-$(date +%s)
+          BRANCH=feature/js-to-ts-conversion-$(date +%s)
           git checkout -b $BRANCH
-          git push origin $BRANCH
           echo "BRANCH_NAME=$BRANCH" >> $GITHUB_ENV
 
-      - name: Install GitHub CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gh
-
-      - name: Authenticate GitHub CLI
-        run: |
-          unset GITHUB_TOKEN
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-
-      - name: Install GitHub Copilot CLI
-        run: |
-          gh extension install github/gh-copilot
-
-      - name: Use GitHub Copilot CLI to fix JS file
-        run: |
-          unset GITHUB_TOKEN
-          gh copilot suggest sample.js --instructions-file copilot-instructions.md --accept-all
-
-      - name: Stage and commit Copilot changes
-        run: |
-          git add sample.js
-          git commit -m "fix: apply Copilot suggestions to sample.js" || echo "No Copilot changes to commit"
-
-      - name: Create Pull Request with GitHub CLI
+      - name: Convert JS files to TS
+        id: convert
         env:
-          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Only create PR if there are commits ahead of main
-          COMMITS_AHEAD=$(git rev-list --count origin/main..$BRANCH_NAME)
-          if [ "$COMMITS_AHEAD" -gt 0 ]; then
-            gh pr create \
-              --title "chore: touch all JS files" \
-              --body "This PR touches all JS files in the repository.\n\nCopilot custom instructions are provided in \`copilot-instructions.md\`." \
-              --base main \
-              --head $BRANCH_NAME
-            # Comment Copilot instructions on the PR (mention Copilot for visibility)
-            gh pr comment "$BRANCH_NAME" --body "@github-copilot Please follow the custom instructions in copilot-instructions.md:\n\n$(cat copilot-instructions.md)"
+          # Process each JavaScript file
+          PROCESSED_FILES=0
+          SUCCESSFUL_CONVERSIONS=0
+          
+          for file in ${{ steps.find-js.outputs.js_files }}; do
+            echo "Converting $file to TypeScript..."
+            if node dist/converter.js "$file"; then
+              SUCCESSFUL_CONVERSIONS=$((SUCCESSFUL_CONVERSIONS + 1))
+              
+              # Add both the original JS file and the new TS file to git
+              git add "$file" "${file%.js}.ts"
+            else
+              echo "Conversion failed for $file"
+            fi
+            PROCESSED_FILES=$((PROCESSED_FILES + 1))
+          done
+          
+          echo "Processed $PROCESSED_FILES files, successfully converted $SUCCESSFUL_CONVERSIONS"
+          echo "successful_count=$SUCCESSFUL_CONVERSIONS" >> $GITHUB_OUTPUT
+
+      - name: Commit changes
+        run: |
+          if [ ${{ steps.convert.outputs.successful_count }} -gt 0 ]; then
+            git commit -m "feat: convert JavaScript files to TypeScript"
+            echo "CHANGES_MADE=true" >> $GITHUB_ENV
           else
-            echo "No new commits to create a PR. Skipping PR creation."
+            echo "No successful conversions, skipping commit"
+            echo "CHANGES_MADE=false" >> $GITHUB_ENV
           fi
+
+      - name: Push changes
+        if: env.CHANGES_MADE == 'true'
+        run: |
+          git push origin ${{ env.BRANCH_NAME }}
+
+      - name: Create Pull Request
+        if: env.CHANGES_MADE == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_TITLE="feat: Convert JavaScript files to TypeScript"
+          PR_BODY="This PR automatically converts JavaScript files to TypeScript using the JS-to-TS converter.
+
+### Converted Files:
+\`\`\`
+$(for file in ${{ steps.find-js.outputs.js_files }}; do echo "- $file -> ${file%.js}.ts"; done)
+\`\`\`
+
+Please review the TypeScript conversions for accuracy and make any necessary adjustments."
+          
+          gh pr create \
+            --title "$PR_TITLE" \
+            --body "$PR_BODY" \
+            --base main \
+            --head ${{ env.BRANCH_NAME }}

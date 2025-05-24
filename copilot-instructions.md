@@ -1,9 +1,12 @@
 # Custom Copilot Instructions
 
-Please follow these custom instructions for Copilot on this repository:
+Convert this JavaScript to TypeScript with appropriate type annotations. Follow modern TypeScript best practices, maintain the original functionality, and add appropriate interfaces and type definitions. Follow these additional guidelines:
 
-- Always use modern JavaScript (ES6+) syntax.
-- Prefer functional programming patterns where possible.
-- Write concise and well-documented code.
-- Ensure all code is linted and formatted using Prettier.
-- Add comments explaining non-trivial logic.
+- Use explicit return types for functions
+- Add proper parameter typing
+- Use interfaces for complex objects
+- Add JSDoc comments with @param and @returns tags
+- Use TypeScript-specific features like readonly, enums, etc. where appropriate
+- Ensure strict null checking compatibility
+- Maintain ES6+ style and functional patterns
+- Return only the updated typescript code, no additional comments or explanations

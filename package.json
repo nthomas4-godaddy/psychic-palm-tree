@@ -1,0 +1,40 @@
+{
+  "name": "js-to-ts-converter",
+  "version": "1.0.0",
+  "description": "Convert JavaScript files to TypeScript using GitHub AI",
+  "main": "dist/converter.js",
+  "types": "dist/converter.d.ts",
+  "scripts": {
+    "build": "tsc --project tsconfig.json && esbuild converter.ts --bundle --platform=node --target=node22 --tsconfig=tsconfig.json --outfile=dist/converter.js",
+    "watch": "tsc --project tsconfig.json --watch & esbuild converter.ts --bundle --platform=node --target=node22 --tsconfig=tsconfig.json --outfile=dist/converter.js --watch",
+    "start": "npm run build && node dist/converter.js",
+    "start:convert": "npm run build && node dist/converter.js src/sample.js",
+    "convert": "ts-node converter.ts src/sample.js",
+    "convert:file": "ts-node converter.ts",
+    "convert:built": "npm run build && node dist/converter.js src/sample.js",
+    "convert:built:file": "npm run build && node dist/converter.js",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "typescript",
+    "javascript",
+    "conversion",
+    "github-ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.19.7",
+    "ts-node": "^10.9.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "bin": {
+    "js-to-ts": "./dist/converter.js"
+  }
+}
