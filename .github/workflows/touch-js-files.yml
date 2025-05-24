@@ -64,6 +64,7 @@ jobs:
 
       - name: Use GitHub Copilot CLI to fix JS file
         run: |
+          unset GITHUB_TOKEN
           gh copilot suggest sample.js --apply --instructions-file copilot-instructions.md
 
       - name: Stage and commit Copilot changes
