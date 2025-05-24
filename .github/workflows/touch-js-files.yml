@@ -56,12 +56,6 @@ jobs:
         run: |
           gh extension install github/gh-copilot
 
-      - name: Authenticate GitHub Copilot CLI
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo $GITHUB_TOKEN | gh auth login --with-token
-
       - name: Use GitHub Copilot CLI to fix JS file
         run: |
           unset GITHUB_TOKEN
