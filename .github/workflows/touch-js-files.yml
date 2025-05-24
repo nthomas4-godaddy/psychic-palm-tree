@@ -64,11 +64,8 @@ jobs:
               --body "This PR touches all JS files in the repository.\n\nCopilot custom instructions are provided in \`copilot-instructions.md\`." \
               --base main \
               --head $BRANCH_NAME
-            PR_URL=$(gh pr view $BRANCH_NAME --json url -q .url)
-            # Add Copilot as a reviewer
-            gh pr edit "$BRANCH_NAME" --add-reviewer github-copilot[bot]
-            # Comment Copilot instructions on the PR
-            gh pr comment "$BRANCH_NAME" --body "@github-copilot[bot] Please follow the custom instructions in copilot-instructions.md:\n\n$(cat copilot-instructions.md)"
+            # Comment Copilot instructions on the PR (mention Copilot for visibility)
+            gh pr comment "$BRANCH_NAME" --body "@github-copilot Please follow the custom instructions in copilot-instructions.md:\n\n$(cat copilot-instructions.md)"
           else
             echo "No new commits to create a PR. Skipping PR creation."
           fi
