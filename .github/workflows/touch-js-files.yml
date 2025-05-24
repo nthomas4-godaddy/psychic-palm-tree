@@ -36,16 +36,26 @@ jobs:
           git push origin $BRANCH
           echo "BRANCH_NAME=$BRANCH" >> $GITHUB_ENV
 
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "chore: touch all JS files"
-          body: |
-            This PR touches all JS files in the repository.
-            
-            Copilot custom instructions are provided in `copilot-instructions.md`.
-          branch: ${{ env.BRANCH_NAME }}
+      - name: Install GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
+
+      - name: Authenticate GitHub CLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo $GITHUB_TOKEN | gh auth login --with-token
+
+      - name: Create Pull Request with GitHub CLI
+        env:
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+        run: |
+          gh pr create \
+            --title "chore: touch all JS files" \
+            --body "This PR touches all JS files in the repository.\n\nCopilot custom instructions are provided in \`copilot-instructions.md\`." \
+            --base main \
+            --head $BRANCH_NAME
 
       - name: Add Copilot to PR and provide custom instructions
         run: |
