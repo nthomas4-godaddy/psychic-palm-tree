@@ -107,17 +107,36 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR_TITLE="feat: Convert JavaScript files to TypeScript"
-          PR_BODY="This PR automatically converts JavaScript files to TypeScript using the JS-to-TS converter.
-
-### Converted Files:
-\`\`\`
-$(for file in ${{ steps.find-js.outputs.js_files }}; do echo "- $file -> ${file%.js}.ts"; done)
-\`\`\`
-
-Please review the TypeScript conversions for accuracy and make any necessary adjustments."
           
+          # Create file list for PR body
+          FILE_LIST=""
+          for file in ${{ steps.find-js.outputs.js_files }}; do 
+            FILE_LIST="${FILE_LIST}- ${file} -> ${file%.js}.ts\n"
+          done
+          
+          # Use simple PR body to avoid YAML issues
+          PR_BODY="This PR automatically converts JavaScript files to TypeScript using the JS-to-TS converter."
+          
+          # Add converted files directly with gh pr create command
+          
+          # First create the PR with a simple message
           gh pr create \
             --title "$PR_TITLE" \
             --body "$PR_BODY" \
             --base main \
             --head ${{ env.BRANCH_NAME }}
+            
+          # Get the PR number from the new branch
+          PR_NUMBER=$(gh pr list --head ${{ env.BRANCH_NAME }} --json number -q '.[0].number')
+          
+          # Then add a comment with the file list
+          if [ -n "$PR_NUMBER" ]; then
+            # Generate file list
+            COMMENT_BODY="### Converted Files:\n"
+            for file in ${{ steps.find-js.outputs.js_files }}; do
+              COMMENT_BODY="${COMMENT_BODY}\n- ${file} → ${file%.js}.ts"
+            done
+            
+            # Add comment with file list
+            gh pr comment $PR_NUMBER --body "$COMMENT_BODY"
+          fi
