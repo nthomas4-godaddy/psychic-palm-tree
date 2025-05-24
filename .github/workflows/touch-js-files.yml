@@ -50,11 +50,17 @@ jobs:
         env:
           BRANCH_NAME: ${{ env.BRANCH_NAME }}
         run: |
-          gh pr create \
-            --title "chore: touch all JS files" \
-            --body "This PR touches all JS files in the repository.\n\nCopilot custom instructions are provided in \`copilot-instructions.md\`." \
-            --base main \
-            --head $BRANCH_NAME
+          # Only create PR if there are commits ahead of main
+          COMMITS_AHEAD=$(git rev-list --count origin/main..$BRANCH_NAME)
+          if [ "$COMMITS_AHEAD" -gt 0 ]; then
+            gh pr create \
+              --title "chore: touch all JS files" \
+              --body "This PR touches all JS files in the repository.\n\nCopilot custom instructions are provided in \`copilot-instructions.md\`." \
+              --base main \
+              --head $BRANCH_NAME
+          else
+            echo "No new commits to create a PR. Skipping PR creation."
+          fi
 
       - name: Add Copilot to PR and provide custom instructions
         run: |
