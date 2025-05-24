@@ -19,6 +19,12 @@ jobs:
             touch "$file"
           done
 
+      - name: Modify all JS files to ensure a change
+        run: |
+          for file in $(find . -type f -name '*.js'); do
+            echo "" >> "$file"
+          done
+
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
